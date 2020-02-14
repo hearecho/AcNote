@@ -1,5 +1,23 @@
 # java基础知识
 
+### 阻塞队列
+
+几种常用的阻塞队列
+
+- ArrayBlockingQueue ：一个由数组结构组成的有界阻塞队列。
+- LinkedBlockingQueue ：一个由链表结构组成的有界阻塞队列。
+- PriorityBlockingQueue ：一个支持优先级排序的无界阻塞队列。
+- DelayQueue：一个使用优先级队列实现的无界阻塞队列。
+- SynchronousQueue：一个不存储元素的阻塞队列。
+- LinkedTransferQueue：一个由链表结构组成的无界阻塞队列。
+- LinkedBlockingDeque：一个由链表结构组成的双向阻塞队列。
+
+### Java程序启动至少启动几个线程
+
+2个或者五个
+
+
+
 # java容器
 
 https://blog.csdn.net/xzp_12345/article/details/79251174
@@ -9,11 +27,39 @@ https://blog.csdn.net/xzp_12345/article/details/79251174
 1. 阈值 为 大小 * 0.75
 2. 大于阈值之后变进行扩容
 
+### HashMap为什么不是线程安全的？
+
+> hashmap 在添加Entry的时间，多线程操作可能会导致线程不安全；
+
 ### hashtable，hashmap，concurenthashmap的区别
 
+### concurenthashmap jdk1.8改动
 
+1. 利用CAS+synchronized来保证并发更新的安全，底层依然采用数组+链表+红黑树的存储结构。
+
+2. basecount 记录元素数量，通过CAS更新
+
+3. countercells 记录元素变化个数，cas操作basecount失败时使用。
+
+4. 扩容的元素复制可并行进行。
 
 # Java并发
+
+### sleep 和 wait的区别
+
+> sleep：
+>
+> - 让当前线程休眠指定时间
+>
+> - 不释放锁资源
+>
+> - 可通过调用interrupt()方法来唤醒休眠线程
+>
+> wait：
+>
+> - 让当前线程进入等待状态，当其他线程调用notify或者notifyAll方法时，当前线程进入就绪状态
+>
+> - 当前线程会释放已获取的锁资源，并进入等待队列
 
 ### 多线程三个特性
 
@@ -33,14 +79,14 @@ https://blog.csdn.net/xzp_12345/article/details/79251174
 
 ##### 关键参数：
 
-| 参数名称      | 作用                                               | 设置依据 |
-| ------------- | -------------------------------------------------- | -------- |
-| corePoolSzie  | 线程池核心线程数量                                 |          |
-| mixPoolSize   | 线程池最大线程数量                                 |          |
-| taskQueue     | 储存任务队列（同步）                               |          |
-| keepAliveTime | 非核心线程存活时间                                 |          |
-| threadFactory | 生成线程的工厂类                                   |          |
-| handler       | 任务队列满与线程数达到最大数量时间，执行的拒绝策略 |          |
+| 参数名称      | 作用                                               | 设置依据                                              |
+| ------------- | -------------------------------------------------- | ----------------------------------------------------- |
+| corePoolSzie  | 线程池核心线程数量                                 | 大多设置为核心数加一；IO密集型=2Ncpu；计算密集型=Ncpu |
+| mixPoolSize   | 线程池最大线程数量                                 |                                                       |
+| taskQueue     | 储存任务队列（同步）                               |                                                       |
+| keepAliveTime | 非核心线程存活时间                                 |                                                       |
+| threadFactory | 生成线程的工厂类                                   |                                                       |
+| handler       | 任务队列满与线程数达到最大数量时间，执行的拒绝策略 |                                                       |
 
 ##### 自带的线程池
 
@@ -57,6 +103,52 @@ https://blog.csdn.net/xzp_12345/article/details/79251174
 - assign、store、write动作必须**连续出现**
 
 所以volatile变量能够保证读取前必须先从主内存刷新最新的值，写入后必须立即同步回主内存；
+
+### synchronized 和 lock
+
+> 二者的区别:
+>
+> 1. synchronized 是Java内置关键字，Lock是Java类
+>
+> 2. synchronized 无法显式的判断是否获取锁的状态，Lock可以判断是否获取到锁
+>
+> 3. synchronized 会自动释放锁，Lock需要在finally中手工释放锁
+>
+> 4. synchronized 不同线程获取锁只有一个线程能获取成功，其他线程会一直阻塞直到获取锁，Lock有阻塞锁，也有非阻塞锁，阻塞锁还有尝试设置，功能更强
+>
+> 5. synchronized 可重入，不可中断，非公平，Lock锁可重入，可判断，有公平锁，非公平锁
+>
+> 6. Lock锁适合大量同步代码的同步问题，synchronized锁适合代码少量的同步问题
+
+#### synchronized(jvm实现)
+
+> Synchronized可以修饰普通方法、同步方法块、静态方法；(可重入)
+>  普通方法锁是当前实例对象，静态方法锁是当前类的Class对象，同步方法块锁是Synchonized配置的对象；
+>  用的锁是存在对象头里的,根据mark word的锁状态来判断锁，如果锁只被同一个线程持有使用的是偏向锁，不同线程互相交替持有锁使用轻量级锁，多线程竞争使用重量级锁。锁会按偏向锁->轻量级锁->重量级锁 升级，称为锁膨胀
+
+##### 可重入的实现
+
+> 为synchronized使用的是锁对象，当某个线程第一次持有锁后，会修改锁对象的mark word锁状态为偏向锁，偏向锁锁会在当前线程的栈帧中建立一个锁记录空间，mark word会将指针指向栈中的锁记录。当线程再次获取锁对象的时候，会检查mark word 中的指针是否指向当前线程的栈帧，如果是就直接获取锁，如果不是就需要竞争;偏向锁可能就会进化为重量级锁
+
+#### lock
+
+> lock是一个接口类，实现主要有ReentrantLock可重入锁，ReadLock读锁，WriteLock写锁等；主要创建方式是通过多态的方式进行的创建；
+
+##### ReentrantLock(jdk实现)
+
+> 底层是通过AQS实现的，每次获取锁，均会通过CAS使得state加一，而2其他线程想要获取锁的时候，只能等待这个state加一才能通过AQS队列获取这个锁；最常用的锁
+>
+> 能够使用重入锁的的必须保证
+
+###### ReentrantLock中的lock和unlock之间的同步如何进行线程间的通信
+
+> 际就是使用synchronized关键字同步中用到的wait和notify,notifyAll方法的类似功能。ReentrantLock采用的是Condition接口中的await等待，signal方法进行唤醒。Condition这个接口的类型是通过ReentrantLock的实例newCondition()进行创建的类型;
+
+### 公平锁和非公平锁的实现
+
+https://blog.csdn.net/qyp199312/article/details/70598480
+
+
 
 # java虚拟机
 
@@ -96,7 +188,28 @@ https://blog.csdn.net/xzp_12345/article/details/79251174
 4. Serial Old收集器
 5. Parallel Old收集器
 6. CMS收集器
+
+过程:
+
+- 初始标记：仅仅只是标记一下 GC Roots 能直接关联到的对象，速度很快，需要停顿。
+- 并发标记：进行 GC Roots Tracing 的过程，它在整个回收过程中耗时最长，不需要停顿。
+- 重新标记：为了修正并发标记期间因用户程序继续运作而导致标记产生变动的那一部分对象的标记记录，需要停顿。
+- 并发清除：不需要停顿。
+
+缺点:
+
+- 吞吐量低：低停顿时间是以牺牲吞吐量为代价的，导致 CPU 利用率不够高。
+- 无法处理浮动垃圾，可能出现 Concurrent Mode Failure。浮动垃圾是指并发清除阶段由于用户线程继续运行而产生的垃圾，这部分垃圾只能到下一次 GC 时才能进行回收。由于浮动垃圾的存在，因此需要预留出一部分内存，意味着 CMS 收集不能像其它收集器那样等待老年代快满的时候再回收。如果预留的内存不够存放浮动垃圾，就会出现 Concurrent Mode Failure，这时虚拟机将临时启用 Serial Old 来替代 CMS。
+- 标记 - 清除算法导致的空间碎片，往往出现老年代空间剩余，但无法找到足够大连续空间来分配当前对象，不得不提前触发一次 Full GC。
+
 7. G1收集器
+
+过程
+
+- 初始标记
+- 并发标记
+- 最终标记：为了修正在并发标记期间因用户程序继续运作而导致标记产生变动的那一部分标记记录，虚拟机将这段时间对象变化记录在线程的 Remembered Set Logs 里面，最终标记阶段需要把 Remembered Set Logs 的数据合并到 Remembered Set 中。这阶段需要停顿线程，但是可并行执行。
+- 筛选回收：首先对各个 Region 中的回收价值和成本进行排序，根据用户所期望的 GC 停顿时间来制定回收计划。此阶段其实也可以做到与用户程序一起并发执行，但是因为只回收一部分 Region，时间是用户可控制的，而且停顿用户线程将大幅度提高收集效率。
 
 #### 垃圾收集方法
 
@@ -175,6 +288,66 @@ assign：作用工作内存，把一个从执行引擎接收到的值赋值给�
 store：作用于工作内存的变量，把工作内存的一个变量的值传送到主内存中。
 
 write：作用于主内存的变量，把store操作传来的变量的值放入主内存的变量中。
+
+### jvm常用命令
+
+##### jps
+
+> 显示当前运行的java进程以及相关参数
+
+```shell
+jsp -l pid
+-q 只显示pid，不显示class名称,jar文件名和传递给main 方法的参数。
+-l 输出应用程序main class的完整package名 或者 应用程序的jar文件完整路径名。
+-m 输出传递给main方法的参数
+-v 输出传递给JVM的参数
+```
+
+#### jstack
+
+> 用于生成java虚拟机当前时刻的线程快照。
+
+###### 分析CPU利用率100%问题
+
+1. top 查看占CPU最多的进程
+2. top -Hp pid 查询进程下所有线程的运行情况（shift+p 按cpu排序，shift+m 按内存排序）
+3. 用printf ‘%x’ pid 转换为16进制（加入查到的是a）
+4. jstact查看线程快照，jstack 30316 | grep -A 20 a
+
+#### jmap
+
+> 用于打印指定Java进程(或核心文件、远程调试服务器)的共享对象内存映射或堆内存细节
+
+1. 看java堆（heap）使用情况：jmap -heap 31846
+
+2. 查看java堆（heap）中的对象数量及大小：jmap -histo 31846
+
+3. 将内存使用的详细情况输出到文件： jmap -dump:format=b,file=heapDump pid然后使用jhat -port 5000 heapDump在浏览器中访问：[http://localhost:5000/](https://link.jianshu.com?t=http://localhost:5000/)查看详细信息
+
+### jinfo
+
+> jinfo可以输出java进程、core文件或远程debug服务器的配置信息。可以使用jps -v替换
+
+### jstat
+
+> 是用于监控虚拟机各种运行状态信息的命令行工具。他可以显示本地或远程虚拟机进程中的类装载、内存、垃圾收集、JIT编译等运行数据。
+
+jstat -<option> [-t] [-h<lines>] <vmid> [<interval> [<count>]]
+ 参数解释：
+
+Option — 选项，我们一般使用 -gcutil 查看gc情况
+
+vmid — VM的进程号，即当前运行的java进程号
+
+interval– 间隔时间，单位为秒或者毫秒
+
+count — 打印次数，如果缺省则打印无数次
+
+例子：jstat -gc 5828 250 5
+
+### javap
+
+> 可以对代码反编译，也可以查看java编译器生成的字节码。
 
 # javaIO
 
@@ -377,24 +550,45 @@ public class CharsetTransform {
 
 #### AOP(面向切面编程)
 
+https://segmentfault.com/a/1190000011291179
+
 ##### 静态代理
+
+> 这种代理方式需要代理对象和目标对象实现一样的接口。
+>
+> 优点：可以在不修改目标对象的前提下扩展目标对象的功能。
+>
+> 缺点：
+>
+> 1. 冗余。由于代理对象要实现与目标对象一致的接口，会产生过多的代理类。
+> 2. 不易维护。一旦接口增加方法，目标对象与代理对象都要进行修改。
 
 ##### 动态代理
 
-1. java自带的代理，主要用于代理一个实现接口的类时，使用java自带的代理
+1. java自带的代理，主要用于代理一个实现接口的类时，使用java自带的代理(接口代理)
 
 > 主要涉及java.lang.reflect中的两个类，Proxy 和 InvocationHandler 
 > InvocationHandler是一个接口，通过实现该接口定义横切逻辑，并通过反射机制调用目标类的代码，动态将横切逻辑和业务逻辑编辑在一起。只能为实现接口的类创建代理;
 >
 > 除了public之外的其他所有方法都不能进行代理，缺省也不行，**public static**也不行
 
-1. cglib代理，除去上述方式其他的使用这个进行代理
+1. cglib代理，除去上述方式其他的使用这个进行代理(类代理)
 
-> 是一个强大的高性能，高质量的代码生成类库，可以在运行期扩展Java类与实现Java接口，Cglib封装了asm,可以在运行期动态生成新的class。可以是普通类，也可以是实现接口的类
+> 是一个强大的高性能，高质量的代码生成类库，可以在运行期扩展Java类与实现Java接口，Cglib封装了asm,可以在运行期动态生成新的class。可以是普通类，也可以是实现接口的类;动态生成一个子类对代理目标类进行扩充；
 >
 > 由于其通过生成目标类子类的方式来增强，因此**不能被子类继承的方法都不能被增强**，private、static、final 方法
 
+两种代理的区别
+
 #### IOC(控制反转) 
+
+##### 几种scope的区别
+
+1. singlon 单例，系统中只有一个实例
+2. protype 原型，每次通过容器的getBean方法获取prototype定义的Bean时，都将产生一个新的Bean实例
+3. request ，对于每次HTTP请求，使用request定义的Bean都将产生一个新实例，即每次HTTP请求将会产生不同的Bean实例。只有在Web应用中使用Spring时，该作用域才有效
+4. session ，对于每次HTTP Session，使用session定义的Bean都将产生一个新实例。同样只有在Web应用中使用Spring时，该作用域才有效
+5. globalsession：每个全局的HTTP Session，使用session定义的Bean都将产生一个新实例。典型情况下，仅在使用portlet context的时候有效。同样只有在Web应用中使用Spring时，该作用域才有效
 
 #### DI(依赖注入)
 
@@ -430,9 +624,43 @@ xml配置直接修改bean的名称即可，注解设置相应的bean名称
 
 ### mybaits
 
+#### MyBatis中#{}和${}的区别
+
+1. 使用${}方式传入的参数，mybatis不会对它进行特殊处理，而使用#{}传进来的参数，mybatis默认会将其当成字符串；
+2. \#和$在预编译处理中是不一样的。#类似jdbc中的PreparedStatement，对于传入的参数，在预处理阶段会使用**?代替**，待真正查询的时候即在数据库管理系统中（DBMS）才会代入参数。而${}则是简单的**替换**
+
+### Spring保证线程安全
+
+https://blog.csdn.net/m0_37222746/article/details/56486694
+
+#### mybaits缓存
+
+##### 一级缓存
+
+> 一级缓存是SqlSession级别的缓存。在操作数据库时需要构造 sqlSession对象，在对象中有一个(内存区域)数据结构（HashMap）用于存储缓存数据。不同的sqlSession之间的缓存数据区域（HashMap）是互相不影响的。一级缓存的作用域是同一个SqlSession，在同一个sqlSession中两次执行相同的sql语句，第一次执行完毕会将数据库中查询的数据写到缓存（内存），第二次会从缓存中获取数据将不再从数据库查询，从而提高查询效率。当一个sqlSession结束后该sqlSession中的一级缓存也就不存在了。Mybatis默认开启一级缓存。
+
+注意点:
+
+1. 如果sqlsession执行过插入删除更新操作，那么会清空一级缓存；
+2. 执行两次service调用查询相同的用户信息，不走一级缓存，因为Service方法结束，sqlSession就关闭，一级缓存就清空。
+
+##### 二级缓存
+
+> 二级缓存是mapper级别的缓存，多个SqlSession去操作同一个Mapper的sql语句，多个SqlSession去操作数据库得到数据会存在二级缓存区域，多个SqlSession可以共用二级缓存，二级缓存是跨SqlSession的。其作用域是mapper的同一个namespace，不同的sqlSession两次执行相同namespace下的sql语句且向sql中传递参数也相同即最终执行相同的sql语句，第一次执行完毕会将数据库中查询的数据写到缓存（内存），第二次会从缓存中获取数据将不再从数据库查询，从而提高查询效率
+
+
+
 ### springboot
 
 #### 自动配置
+
+##### 三个重要注解
+
+- `@SpringBootConfiguration`：我们点进去以后可以发现底层是**Configuration**注解，说白了就是支持**JavaConfig**的方式来进行配置(**使用Configuration配置类等同于XML文件**)。
+- `@EnableAutoConfiguration`：开启**自动配置**功能(后文详解)
+- `@ComponentScan`：这个注解，学过Spring的同学应该对它不会陌生，就是**扫描**注解，默认是扫描**当前类下**的package。将`@Controller/@Service/@Component/@Repository`等注解加载到IOC容器中。
+
+其中`@EnableAutoConfiguration`是关键(启用自动配置)，内部实际上就去加载`META-INF/spring.factories`文件的信息，然后筛选出以`EnableAutoConfiguration`为key的数据，加载到IOC容器中，实现自动配置功能！
 
 #### 注解的原理和实现
 
