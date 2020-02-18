@@ -42,6 +42,12 @@ https://segmentfault.com/a/1190000008942618
 
 ### 6.mysql索引
 
+### 创建索引的方式
+
+1. create unique index indexName on table(username(length))
+2. alter table mytable add unique [indexname] (username(length))
+3. 创建表的时间指定
+
 ####  为什么主键用auto_increment
 
 > 关键不在于自动，而是在于增加，由于mysql使用的b+树作为索引，查询，所有的叶节点之间有指针相连接，使用按照一定顺序的增加的索引能够很快的判断数据的位置；
@@ -67,6 +73,14 @@ System.out.println(dxmbid.length());
 #### 查询主键/非主键索引的实现方式
 
 基于非主键索引的查询**需要多扫描一棵索引树,因此，我们在应用中应该尽量使用主键查询**。
+
+#### 回表查询和覆盖索引
+
+https://www.cnblogs.com/myseries/p/11265849.html
+
+#### 联合索引B+树上的机构，-最左匹配
+
+https://blog.csdn.net/weixin_30531261/article/details/79329722
 
 ### 7. mysql锁
 
@@ -178,13 +192,76 @@ slow_query_log_file：查询记录位置
 
 #### 分库分表
 
+### 事务隔离级别，4个隔离级别分别有什么并发问题？
 
+| 隔离级别   | 解决问题                                                     | 锁的级别                 |
+| ---------- | ------------------------------------------------------------ | ------------------------ |
+| 未提交读RU | 解决了更新丢失问题，却会出现脏读                             |                          |
+| 提交读RC   | 别避免了脏读，但是却可能出现不可重复读                       | 读取不加锁，更删改加行锁 |
+| 可重复读RR | 避免了不可重复读取和脏读，但是有时可能出现幻读               |                          |
+| 可序列化   | 在该级别下，事务顺序执行，不仅可以避免脏读、不可重复读，还避免了幻像读。 |                          |
 
+### sql优化
 
+1. 应尽量避免在**where** 子句中对字段进行null 值判断
 
+```sql
+select id from t where num is null
+建议将null设置为0
+```
 
+2. 应尽量避免在**where** 子句中使用!=或<>操作符
+3. 应尽量避免在**where** 子句中使用**or** 来连接条件
+4. **in** 和**not** **in** 也要慎用能用**between**就用**between**
+5. 通配符最好不要放在第一位
 
+```sql
+select id from t where name like '%abc%'
+不建议
+```
 
+6. 如果在**where** 子句中使用参数，也会导致全表扫描。因为**SQL**只有在运行时才会解析局部变量，但优化程序不能将访问计划的选择推 迟到运行时；它必须在编译时进行选择。
+7. 应尽量避免在**where** 子句中对字段进行表达式操作
+8. 应尽量避免在**where**子句中对字段进行函数操作
+9. 在使用索引字段作为条件时，如果该索引是复合索引，那么必须使用到该索引中的第一个字段作为条件时才能保证系统使用该索引，否则该索引将不会被使用，并且应尽可能的让字段顺序与索引顺序相一致。
+10. 很多时候用**exists** 代替**in** 是一个好的选择
+
+```sql
+select num from a where exists(select 1 from b where num=a.num)
+```
+
+### Explain各个字段的含义
+
+> explain + select语句
+
+| 字段名        | 含义                                                         |
+| ------------- | ------------------------------------------------------------ |
+| id            | SELECT识别符。这是SELECT查询序列号。这个不重要,查询序号即为sql语句执行的顺序 |
+| select_type   | select的类型: simple：简单select语句、primay：最外面的select,在有子查询的语句中，最外面的select查询就是primary,上图中就是这样、union：union union语句的第二个或者说是后面那一个.现执行一条语句、dependent union：UNION中的第二个或后面的SELECT语句，取决于外面的查询、union result：union的结果 |
+| table         | 输出的行所用的表                                             |
+| type          | system、const、eq_ref、ref。。。。                           |
+| possible_keys | 提示使用哪个索引会在该表中找到行                             |
+| keys          | MYSQL使用的索引，                                            |
+| key_len       | MYSQL使用的索引长度                                          |
+| ref           | ref列显示使用哪个列或常数与key一起从表中选择行               |
+| rows          | 显示MYSQL执行查询的行数,数值越大越不好，说明没有用好索引     |
+| extra         | 该列包含MySQL解决查询的详细信息。                            |
+
+### mysql主从复制
+
+https://segmentfault.com/a/1190000008942618
+
+1. sql语句复制
+2. 记录复制
+3. 混合复制
+
+### 主从复制或读写分离等数据不一致性问题以及如何解决
+
+https://blog.csdn.net/weixin_43885417/article/details/101676610
+
+1. 同步复制
+2. 利用中间件，进行分发，将复制期间的读路由路由到主数据库；
+3. 利用缓存，缓存过期时间为复制时间
 
 
 
