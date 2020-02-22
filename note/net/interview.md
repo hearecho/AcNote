@@ -1,4 +1,4 @@
-### 重定向和转发的区别
+
 
 **forward（转发）**：
 
@@ -209,7 +209,20 @@ https://juejin.im/entry/5766c29d6be3ff006a31b84e
 3. 表单隐藏域
 4. 。。
 
+### Linux listen() 函数 backlog 的含义
 
+https://blog.csdn.net/yangbodong22011/article/details/60399728
+
+```c
+#include<sys/socket.h>
+int listen(int socket,int backlog)
+```
+
+> 1. Kernel会为`LISTEN状态`的socket维护**一个队列**，其中存放`SYN RECEIVED`和`ESTABLISHED`状态的套接字，`backlog`就是这个队列的大小。
+> 2. Kernel会为`LISTEN状态`的socket维护**两个队列**，一个是`SYN RECEIVED`状态，另一个是`ESTABLISHED`状态，而`backlog`就是这两个队列的大小之和。
+> 3. 第三种和第二种模型一样，但是`backlog`是队列`ESTABLISHED`的长度。
+
+当前Linux版本使用上面第二种说法，有两个队列：具有由系统范围设置指定的大小的`SYN队列` 和 应用程序（也就是backlog参数）指定的`accept`队列。
 
 
 
