@@ -1,3 +1,7 @@
+[TOC]
+
+
+
 # java基础知识
 
 ### 阻塞队列
@@ -377,10 +381,10 @@ CAS
 
 ### 多线程三个特性
 1. 原子性
-  操作不可分割，可以使用synchronized关键字，和lock锁可以实现操作的原子性，另外AtomicInteger也具有原子性
+    操作不可分割，可以使用synchronized关键字，和lock锁可以实现操作的原子性，另外AtomicInteger也具有原子性
 
 2. 可见性
-  一个线程对于共享变量的操作对其他线程是可见的，可以使用volatile 关键字定义变量；
+    一个线程对于共享变量的操作对其他线程是可见的，可以使用volatile 关键字定义变量；
 
 3. 顺序性
 
@@ -1158,6 +1162,8 @@ https://www.cnblogs.com/xing901022/p/4574961.html
 > 3.  使用应用类加载器在WEB-INF/classes中加载
 > 4. 使用应用类加载器在WEB-INF/lib中加载
 > 5. 用common类加载器在CATALINA_HOME/lib中加载
+
+
 
 
 
