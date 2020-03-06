@@ -1,7 +1,3 @@
-[TOC]
-
-
-
 # java基础知识
 
 ### 阻塞队列
@@ -247,6 +243,50 @@ Student stu3 = constructor.newInstance(123);
 
 4. 使用clone方法创建心的对象们就必须先实现Cloneable接口并实现其定义的clone方法，这也是原型模式的应用
 5. 使用反序列化机制创建对象；
+
+### 反射中，Class.forName和ClassLoader区别 。
+
+1. Class.forName
+
+> Class.forName除了将类的.class文件加载到jvm中之外，还会对类进行解释，执行类中的static块;内部调用的是Class.forName(name,initialize,loader)带参数也可控制是否加载static块。并且只有调用了newInstance()方法采用调用构造函数，创建类的对象。
+
+2. classLoader
+
+> classLoader是类加载器，遵循双亲委派模型最终调用启动类加载器的类加载器，实现的功能是“通过一个类的全限定名来获取描述此类的二进制字节流”，获取到二进制流后放到JVM中。Class.forName()方法实际上也是调用的CLassLoader来实现的。并不自己进行加载static块；
+
+### 栈溢出，堆溢出
+
+1. 栈溢出
+
+> java中栈是线程私有的，他的生命周期与线程相同，每个方法在执行的时候都会创建一个栈帧，用来存储局部变量表，操作数栈，动态链接，方法出口灯信息。局部变量表又包含基本数据类型，对象引用类型；主要造成原因是方法执行是创建的栈帧超过了栈的深度。那么最有可能的就是方法递归调用产生这种结果。
+>
+> 可以使用–Xss512k  设置线程栈大小为512k；
+
+2. 堆溢出
+
+> 堆中主要存储的是对象。如果不断的new对象则会导致堆中的空间溢出;或者堆内对象造成泄漏，以至于造成堆溢出；
+>
+> 可以使用:
+>
+> -Xmx4g   mx   堆最大内存
+>
+> -Xms4g   ms   堆初始内存
+>
+> -Xmn1200m  mn 年轻代的大小
+>
+> -XX：NewRatio=4   NewRatio 设置年老代（除去持久代）与年轻代（包括Eden和两个Survivor区的比值
+>
+> -XX:SurvivorRatio -XX:SurvivorRatio=8：设置年轻代中Eden区与Survivor区的大小比值。设置为8，则两个Survivor区与一个Eden区的比值为2:8
+>
+> -XX:PermSize=100m：初始化永久代大小为100MB。
+> -XX:MaxPermSize=256m：设置持久代大小为256MB。
+
+### try-catch-finally 中，如果 catch 中 return 了，finally 还会执行吗？
+
+1、不管有木有出现异常，finally块中代码都会执行；
+2、当try和catch中有return时，finally仍然会执行；
+3、finally是在return后面的表达式运算后执行的（此时并没有返回运算后的值，而是先把要返回的值保存起来，管finally中的代码怎么样，返回的值都不会改变，任然是之前保存的值），所以函数返回值是在finally执行前确定的；
+4、finally中最好不要包含return，否则程序会提前退出，返回值不是try或catch中保存的返回值。
 
 # java容器
 
@@ -634,8 +674,16 @@ https://blog.csdn.net/qyp199312/article/details/70598480
 
 1. 引用计数法
 2. 可达性分析算法
-3. 方法区回收
-4. finalize()
+
+> 可以作为gc root
+>
+> 1. 虚拟机栈中局部变量表中引用的对象
+> 2. 本地方法栈中 JNI 中引用的对象
+> 3. 方法区中类静态属性引用的对象
+> 4. 方法区中的常量引用的对象
+
+1. 方法区回收
+2. finalize()
 
 #### 类卸载条件
 
@@ -835,6 +883,18 @@ count — 打印次数，如果缺省则打印无数次
 #### jconsole, jvisualvm
 
 > 图形化工具
+
+### JVM内存为什么要分成新生代，老年代，持久代。新生代中为什么要分为Eden和Survivor。
+
+1. survivor的作用
+
+> 由于经过一次GC之后，新生代如果没有survivor区，新生代幸存对象便会直接进入老年代；但是这样这样可能下一次gc这个对象就不会使用，这样就会造成老年代空间浪费；所以使用survivor区，只有将两个survivor区互相多次复制；才进入老年代；设置 Survivor 空间的目的是让那些中等寿命的对象尽量在 Minor GC 时被干掉，最终在总体上减少虚拟机的垃圾收集过程对用户程序的影响。
+>
+> 需要两个survivor的原因:gc 时把存活的对象从一块空间（From space）复制到另外一块空间（To space），再把原先的那块内存（From space）清理干净，最后调换 From space 和 To space 的逻辑角色
+
+### 一次完整的jvm垃圾收集机制
+
+> 对象诞生即新生代->eden，在进行mirror gc过程中，如果依旧存活，移动到from，变成Survivor，进行标记。当一个对象存活默认超过15次都没有被回收掉，就会进入老年代。如果在使用mirror gc过程中，空间担保失败，就会发生fullGC；如果最后进入老年代，然而老年代空间不足，也会发生FULL GC；
 
 # javaIO
 
@@ -1069,6 +1129,8 @@ https://segmentfault.com/a/1190000011291179
 
 #### IOC(控制反转) 
 
+甲乙双方不相互依赖，交易活动的进行不依赖于甲乙任何一方，整个活动的进行由第三方负责管理。资源集中管理，实现资源的可配置和易管理。第二，降低了使用资源双方的依赖程度，也就是我们说的耦合度。
+
 ##### 几种scope的区别
 
 1. singlon 单例，系统中只有一个实例
@@ -1078,6 +1140,8 @@ https://segmentfault.com/a/1190000011291179
 5. globalsession：每个全局的HTTP Session，使用session定义的Bean都将产生一个新实例。典型情况下，仅在使用portlet context的时候有效。同样只有在Web应用中使用Spring时，该作用域才有效
 
 #### DI(依赖注入)
+
+则是，甲方开放接口，在它需要的时候，能够讲乙方传递进来(注入)
 
 ##### 五种依赖注入的方式
 
@@ -1109,6 +1173,28 @@ xml配置直接修改bean的名称即可，注解设置相应的bean名称
 4. 应用可以通过IOC容器使用Bean
 5. 当容器关闭时，调用Bean的销毁方法
 
+#### spring 中的 bean 是线程安全的吗？
+
+> 原型类型的bean因为不存在共享，所以是安全的，单例bean如果是无状态的也是线程安全的；
+
+**Spring根本就没有对bean的多线程安全问题做出任何保证与措施**。对于每个bean的线程安全问题，根本原因是每个bean自身的设计。**不要在bean中声明任何有状态的实例变量或类变量，如果必须如此，那么就使用ThreadLocal把变量变为线程私有的，如果bean的实例变量或类变量需要在多个线程之间共享，那么就只能使用synchronized、lock、CAS等这些实现线程同步的方法了。**
+
+#### spring 自动装配 bean 有哪些方式？
+
+1. no   默认的方式是不进行自动装配，通过手工设置ref 属性来进行装配bean
+2. byName   通过参数名 自动装配，如果一个bean的name 和另外一个bean的 property 相同，就自动装配。
+3. byType   通过参数的数据类型自动自动装配，如果一个bean的数据类型和另外一个bean的property属性的数据类型兼容，就自动装配
+4. construct   构造方法中的参数通过byType的形式，自动装配。
+5. autodetect   如果有默认的构造方法，通过 construct的方式自动装配，否则使用 byType的方式自动装配。
+
+#### spring事务
+
+juejin.im/post/5b00c52ef265da0b95276091
+
+#### spring线程安全
+
+https://blog.csdn.net/m0_37222746/article/details/56486694
+
 ### mybaits
 
 #### MyBatis中#{}和${}的区别
@@ -1116,9 +1202,7 @@ xml配置直接修改bean的名称即可，注解设置相应的bean名称
 1. 使用${}方式传入的参数，mybatis不会对它进行特殊处理，而使用#{}传进来的参数，mybatis默认会将其当成字符串；
 2. \#和$在预编译处理中是不一样的。#类似jdbc中的PreparedStatement，对于传入的参数，在预处理阶段会使用**?代替**，待真正查询的时候即在数据库管理系统中（DBMS）才会代入参数。而${}则是简单的**替换**
 
-### Spring保证线程安全
 
-https://blog.csdn.net/m0_37222746/article/details/56486694
 
 #### mybaits缓存
 
@@ -1150,6 +1234,38 @@ https://blog.csdn.net/m0_37222746/article/details/56486694
 其中`@EnableAutoConfiguration`是关键(启用自动配置)，内部实际上就去加载`META-INF/spring.factories`文件的信息，然后筛选出以`EnableAutoConfiguration`为key的数据，加载到IOC容器中，实现自动配置功能！
 
 #### 注解的原理和实现
+
+https://juejin.im/post/5b45bd715188251b3a1db54f
+
+#### .spring boot 有哪些方式可以实现热部署？
+
+1. devtools
+
+```xml
+<!-- 热部署依赖-->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-devtools</artifactId>
+    <optional>true</optional>
+    <!-- optional=true,依赖不会传递，该项目依赖devtools；之后依赖myboot项目的项目如果想要使用devtools，需要重新引入 -->
+</dependency>
+
+<!-- 添加下面的fork属性为true-->
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+            <configuration>
+                <!--fork :  如果没有该项配置，devtools不会起作用，即应用不会restart -->
+                <fork>true</fork>
+            </configuration>
+        </plugin>
+    </plugins>
+</build>
+```
+
+2. springloaded
 
 ### tomcat类加载
 
